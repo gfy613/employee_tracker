@@ -185,7 +185,7 @@ function deleteEmployee(){
   inquirer
     .prompt([{
       name: "employeeId",
-      type: "choice",
+      type: "list",
       choices: results.map(employee=>
          {return {name: employee.first_name+" "+employee.last_name, value: employee.id} })
               
@@ -193,7 +193,7 @@ function deleteEmployee(){
 
     .then(function(answer) {
       connection.query(
-        "Delete employee WHERE ? ",
+        "Delete From employees WHERE ? ",
         [
           {
             id: answer.employeeId
@@ -211,55 +211,44 @@ function deleteEmployee(){
 
 // function to update the employees role
 function updateRole() {
-  connection.query("SELECT * FROM employees", function(err, results) {
+  let query =
+`Select e.id,e.first_name,e.last_name,e.role_id,r.title, d.name,r.salary, e.manager_id
+      
+from employees e
+join role r
+on r.id = e.role_id
+join department d
+on d.id = r.department_id
+`
+  connection.query(query, function(err, results) {
     if (err) throw err;
   inquirer
     .prompt([{
       name: "employee",
-      type: "choice",
-      // choices: results.map(employee=>
-      //    {return {name: employee.first_name+" "+employee.last_name, value: employee.id} })
-      choices: function() {
-        let employeeArray = [];
-        for (var i = 0; i < results.length; i++) {
-          employeeArray.push(results[i].role);
-        }
-        return employeeArray;
-      }
+      type: "list",
+      choices: results.map(employee=>
+        {return {name: employee.first_name+" "+employee.last_name, value: employee.id} })
 
     },
     {
       name: "role",
-      type: "choice",
-      choices: function() {
-        let roleArray = [];
-        for (var i = 0; i < results.length; i++) {
-          roleArray.push(results[i].role);
-        }
-        return roleArray;
-      }
+      type: "list",
+      choices: results.map(role=>
+        {return {name: role.title, value: role.role_id} })
     }
 
   ])
       .then(function(answer) {
-        // get the information of the chosen item
-        var chosenItem;
-        for (var i = 0; i < results.length; i++) {
-          if (results[i].item_name === answer.choice) {
-            chosenItem = results[i];
-          }
-        }
+      console.log(answer)
           // bid was high enough, so update db, let the user know, and start over
           connection.query(
-            "UPDATE employees SET ? WHERE ?",
+            "UPDATE employees SET ? WHERE id = ?",
             [
               {
-                role: answer.role
+                role_id: answer.role
               },
-              {
-                // need to fix
-                id: id
-              }
+               answer.employee
+              
             ],
             function(error) {
               if (error) throw err;
@@ -273,13 +262,14 @@ function updateRole() {
 }
 
 // function to update the employees manager
-function updateManger() {
+function updateManager() {
   connection.query("SELECT * FROM employees", function(err, results) {
     if (err) throw err;
+    console.log(results)
   inquirer
     .prompt([{
       name: "employee",
-      type: "choice",
+      type: "list",
       choices: results.map(employee=>
          {return {name: employee.first_name+" "+employee.last_name, value: employee.id} })
     },
@@ -291,7 +281,7 @@ function updateManger() {
 
   ])
       .then(function(answer) {
-
+        console.log(answer)
 
           connection.query(
             "UPDATE employees SET ? WHERE ?",
@@ -300,7 +290,7 @@ function updateManger() {
                 manager: answer.manager
               },
               {
-                id: id
+                id: answer.employee
               }
             ],
             function(error) {
@@ -376,16 +366,16 @@ function addEmployee() {
     .then(function(answer) {
       // when finished prompting, insert a new item into the db with that info
       connection.query(
-        "INSERT INTO employees SET ?",
-        {
-          first_name: answer.first_name,
-          last_name: answer.last_name,
-          title: answer.title,
-          department: answer.department,
-          salary: answer.salary,
-          manager: answer.manager,
-          
-        },
+        "INSERT INTO employees (first_name, last_name, title, department, salary, manager) VALUES (?,?,?,?,?,?)",
+        [
+          answer.first_name,
+          answer.last_name,
+          answer.title,
+          answer.department,
+          answer.salary,
+          answer.manager
+        ]
+        ,
         function(err) {
           if (err) throw err;
           console.log("New Empoyee Added!");
