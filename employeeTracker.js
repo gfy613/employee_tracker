@@ -84,7 +84,7 @@ on d.id = r.department_id
  connection.query(query, function(err, results) {
   if (err) throw err; 
   console.log("All Current employees")
-  return console.table(results)
+  console.table(results)
   start();
 })
 
@@ -96,7 +96,7 @@ on d.id = r.department_id
 function viewDepartment(){
   connection.query("SELECT * FROM department", function(err, results) {
     if (err) throw err;
-    console.log(results)
+    // console.log(results)
   inquirer
     .prompt({
       name: "department",
@@ -377,7 +377,7 @@ on d.id = r.department_id
 }
 
 function addRole() {
-  connection.query("SELECT * FROM role", function(err, results) {
+  connection.query("SELECT * FROM department", function(err, results) {
     if (err) throw err;
   // prompt for info about the item being put up for auction
   inquirer
@@ -394,19 +394,21 @@ function addRole() {
       },
       {
         name: "department",
-        type: "input",
-        message: "What is the role's department id?"
-      }
+        type: "list",
+        message: "What department is the role in",
+        choices: results.map(department=>
+          {return {name: department.name, value: department.department_id} })        
+      },
     ])
     .then(function(answer) {
       // when finished prompting, insert a new item into the db with that info
       connection.query(
-        "INSERT INTO roles SET ?",
-        {
-          title: answer.title,
-          salary: answer.salary,
-          department_id: answer.department
-        },
+        "INSERT INTO role (title,salary,department_id) values(?,?,?)",
+        [
+          answer.title,
+          answer.salary,
+          answer.department
+        ],
         function(err) {
           if (err) throw err;
           console.log("New role Added!");
@@ -415,7 +417,6 @@ function addRole() {
       );
     });
   })
-
 }
 
 function addDepartment() {
