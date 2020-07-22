@@ -261,41 +261,49 @@ on d.id = r.department_id
   });
 }
 
-// function to update the employees manager
+// function to update the employees role
 function updateManager() {
-  connection.query("SELECT * FROM employees", function(err, results) {
+  let query =
+`Select e.id,e.first_name,e.last_name,e.role_id,r.title, d.name,r.salary, e.manager_id
+      
+from employees e  
+join role r
+on r.id = e.role_id
+join department d
+on d.id = r.department_id
+`
+  connection.query(query, function(err, results) {
     if (err) throw err;
-    console.log(results)
   inquirer
     .prompt([{
       name: "employee",
       type: "list",
       choices: results.map(employee=>
-         {return {name: employee.first_name+" "+employee.last_name, value: employee.id} })
+        {return {name: employee.first_name+" "+employee.last_name, value: employee.id} })
+
     },
     {
       name: "manager",
       type: "input",
-      messager:"Input new manager ID"
+      message: "what is the new manager's id?"
     }
 
   ])
       .then(function(answer) {
-        console.log(answer)
-
+      console.log(answer)
+          // bid was high enough, so update db, let the user know, and start over
           connection.query(
-            "UPDATE employees SET ? WHERE ?",
+            "UPDATE employees SET ? WHERE id = ?",
             [
               {
-                manager: answer.manager
+                manager_id: answer.manager
               },
-              {
-                id: answer.employee
-              }
+               answer.employee
+              
             ],
             function(error) {
               if (error) throw err;
-              console.log("Employee role updated!");
+              console.log("Employee manager updated!");
               start();
             }
           );
@@ -304,9 +312,20 @@ function updateManager() {
   });
 }
 
+
 // function to add a new employee
 function addEmployee() {
-  connection.query("SELECT * FROM employees", function(err, results) {
+  let query =
+`Select e.id,e.first_name,e.last_name,e.role_id,r.title, d.name,r.salary, e.manager_id
+      
+from employees e
+join role r
+on r.id = e.role_id
+join department d
+on d.id = r.department_id
+`
+
+  connection.query(query, function(err, results) {
     if (err) throw err;
   // prompt for info about the item being put up for auction
   inquirer
@@ -322,58 +341,28 @@ function addEmployee() {
         message: "What is the employee's last name?"
       },
       {
-        name: "title",
-        type: "rawlist",
-        choices: function() {
-          var titleArray = [];
-          for (var i = 0; i < results.length; i++) {
-            choiceArray.push(results[i].title);
-          }
-          return titleArray;
-        },
-        message: "What is the employee's role?"
-      },
-      {
-        name: "department",
-        type: "rawlist",
-        choices: function() {
-          var departmentArray = [];
-          for (var i = 0; i < results.length; i++) {
-            choiceArray.push(results[i].department);
-          }
-          return departmentArray;
-        },
-        message: "What department is the employee in?"
-      },     
-      {
-        name: "salary",
-        type: "input",
-        message: "What is the employee's salary?"
+        name: "role",
+        type: "list",
+        message: "What is the employee's role?",
+        choices: results.map(role=>
+          {return {name: role.title, value: role.role_id} })        
       },
       {
         name: "manager",
-        type: "rawlist",
-        choices: function() {
-          var managerArray = [];
-          for (var i = 0; i < results.length; i++) {
-            choiceArray.push(results[i].manager);
-          }
-          return managerArray;
-        },
-        message: "Who is the employee's manager?"
-      }      
+        type: "input",
+        message: "what is the new manager's id?"
+      }     
     ])
     .then(function(answer) {
+      console.log(answer)
       // when finished prompting, insert a new item into the db with that info
       connection.query(
-        "INSERT INTO employees (first_name, last_name, title, department, salary, manager) VALUES (?,?,?,?,?,?)",
+        "INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)",
         [
           answer.first_name,
           answer.last_name,
-          answer.title,
-          answer.department,
-          answer.salary,
-          answer.manager
+          answer.role,
+          answer.manager,
         ]
         ,
         function(err) {
@@ -432,7 +421,6 @@ function addRole() {
 function addDepartment() {
   connection.query("SELECT * FROM role", function(err, results) {
     if (err) throw err;
-  // prompt for info about the item being put up for auction
   inquirer
     .prompt([
       {
@@ -444,10 +432,10 @@ function addDepartment() {
     .then(function(answer) {
       // when finished prompting, insert a new item into the db with that info
       connection.query(
-        "INSERT INTO department SET ?",
-        {
-          department: answer.department,
-        },
+        "INSERT INTO department (name) VALUES (?)",
+        [
+          answer.department,
+        ],
         function(err) {
           if (err) throw err;
           console.log("New department Added!");
